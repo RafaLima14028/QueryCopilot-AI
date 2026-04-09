@@ -1,4 +1,4 @@
-# QueryPilot AI
+<h1 align="center">QueryPilot AI</h1>
 
 **Transforme perguntas em linguagem natural em consultas SQL seguras, auditáveis e executáveis.**
 
