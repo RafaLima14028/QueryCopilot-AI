@@ -53,20 +53,24 @@ def verify_token(token: str) -> dict:
         )
 
 
-def hash_password(password: str) -> bytes:
+def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
 
-    return bcrypt.hashpw(
+    hashed_password = bcrypt.hashpw(
         password.encode(),
         salt
     )
 
+    hashed_password_str = hashed_password.decode('utf-8')
+
+    return hashed_password_str
+
 
 def verify_password(
     password: str,
-    hashed_password: bytes
+    hashed_password: str
 ) -> bool:
     return bcrypt.checkpw(
-        password.encode(),
-        hashed_password
+        password.encode('utf-8'),
+        hashed_password.encode('utf-8')
     )
