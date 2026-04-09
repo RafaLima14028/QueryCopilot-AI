@@ -29,13 +29,21 @@ def create_acess_token(data: dict) -> str:
     return jwt.encode(
         to_encode,
         settings.SECRET_KEY,
-        algorithm=[settings.ALGORITHM]
+        algorithm=settings.ALGORITHM
     )
 
 
 def verify_token(token: str) -> dict:
+    settings = get_settings()
+
     try:
-        pass
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+
+        return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
