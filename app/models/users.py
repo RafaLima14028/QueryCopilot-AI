@@ -5,7 +5,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import (
     Mapped,
-    mapped_column
+    mapped_column,
+    relationship
 )
 from datetime import datetime
 
@@ -35,4 +36,12 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.now
+    )
+
+    roles: Mapped[list["Role"]] = relationship(
+        secondary="user_roles",
+        back_populates="users"
+    )
+    user_db: Mapped[list["UserDB"]] = relationship(
+        back_populates="users"
     )
