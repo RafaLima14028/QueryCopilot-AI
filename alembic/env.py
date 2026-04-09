@@ -14,7 +14,8 @@ from app.core.database import Base
 from app.core.settings import get_settings
 
 from app.models.users import User
-from app.models.roles import Role, UserRoles
+from app.models.roles import Role
+from app.models.user_roles import UserRoles
 from app.models.users_db import UserDB
 
 settings = get_settings()

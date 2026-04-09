@@ -43,5 +43,5 @@ class User(Base):
         back_populates="users"
     )
     user_db: Mapped[list["UserDB"]] = relationship(
-        back_populates="users"
+        back_populates="user"
     )

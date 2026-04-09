@@ -5,7 +5,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import (
     Mapped,
-    mapped_column
+    mapped_column,
+    relationship
 )
 
 from app.core.database import Base
@@ -42,5 +43,9 @@ class UserDB(Base):
     )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), primary_key=True
+        ForeignKey("users.id")
+    )
+
+    user: Mapped["User"] = relationship(
+        back_populates="user_db"
     )

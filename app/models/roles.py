@@ -1,7 +1,6 @@
 from sqlalchemy import (
     String,
-    Integer,
-    ForeignKey
+    Integer
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -29,15 +28,4 @@ class Role(Base):
     users: Mapped[list["User"]] = relationship(
         secondary="user_roles",
         back_populates="roles"
-    )
-
-
-class UserRoles(Base):
-    __tablename__ = "user_roles"
-
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"), primary_key=True
-    )
-    role_id: Mapped[int] = mapped_column(
-        ForeignKey("roles.id"), primary_key=True
     )

@@ -5,6 +5,7 @@ class UserRegisterRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
+    is_admin: bool = False
 
 
 class UserRegisterResponse(BaseModel):

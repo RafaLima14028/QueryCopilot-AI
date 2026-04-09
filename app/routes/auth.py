@@ -7,6 +7,7 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.security import (
     verify_password,
@@ -39,9 +40,14 @@ async def login(
     ),
     db: AsyncSession = Depends(get_db)
 ):
-    user_db = (await db.scalars(
-        select(User).where(User.email == user.email)
-    )).first()
+    query = (
+        select(User)
+        .where(User.email == user.email)
+        .options(selectinload(User.roles))
+    )
+
+    result = await db.execute(query)
+    user_db = result.scalars().first()
 
     if not user_db or not verify_password(user.password, user_db.password_hash):
         raise HTTPException(
@@ -49,6 +55,9 @@ async def login(
             detail="Invalid credentials"
         )
 
-    token = create_acess_token({"sub": str(user_db.id)})
+    token = create_acess_token({
+        "sub": str(user_db.id),
+        "roles": [role.name for role in user_db.roles]
+    })
 
     return LoginResponse(token=token)
