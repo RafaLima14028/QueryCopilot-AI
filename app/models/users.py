@@ -45,3 +45,6 @@ class User(Base):
     user_db: Mapped[list["UserDB"]] = relationship(
         back_populates="user"
     )
+    query_requests: Mapped[list["QueryRequest"]] = relationship(
+        back_populates="user"
+    )

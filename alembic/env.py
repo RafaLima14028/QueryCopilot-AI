@@ -17,6 +17,7 @@ from app.models.users import User
 from app.models.roles import Role
 from app.models.user_roles import UserRoles
 from app.models.users_db import UserDB
+from app.models.query_requests import QueryRequest
 
 settings = get_settings()
 
