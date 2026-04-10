@@ -34,7 +34,7 @@ async def register(
             "name": "John",
             "email": "john@test.com",
             "password": "JohnTest123",
-            "is_bool": True
+            "is_admin": True
         }
     ),
     db: AsyncSession = Depends(get_db)
@@ -54,6 +54,8 @@ async def register(
 
     if new_user.is_admin:
         role_names.append("admin")
+    else:
+        role_names.append("viewer")
 
     query_roles = await db.execute(
         select(Role).where(Role.name.in_(role_names))

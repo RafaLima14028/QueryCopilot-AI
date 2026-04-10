@@ -5,6 +5,7 @@ from app.middwares.cors import setup_cors
 
 from app.routes.auth import router as router_auth
 from app.routes.user import router as router_user
+from app.routes.query import router as router_query
 
 
 app = FastAPI()
@@ -17,6 +18,7 @@ def home():
 
 app.include_router(router_auth)
 app.include_router(router_user)
+app.include_router(router_query)
 
 setup_cors(app)
 

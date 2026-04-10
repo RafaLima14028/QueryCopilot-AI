@@ -1,4 +1,12 @@
-from fastapi import HTTPException, status
+from fastapi import (
+    HTTPException,
+    status,
+    Depends
+)
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials
+)
 import bcrypt
 import jwt
 from datetime import (
@@ -8,6 +16,8 @@ from datetime import (
 )
 
 from app.core.settings import get_settings
+
+security = HTTPBearer()
 
 
 def create_acess_token(data: dict) -> str:
@@ -33,12 +43,14 @@ def create_acess_token(data: dict) -> str:
     )
 
 
-def verify_token(token: str) -> dict:
+def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> dict:
     settings = get_settings()
 
     try:
         payload = jwt.decode(
-            token,
+            credentials.credentials,
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM]
         )
