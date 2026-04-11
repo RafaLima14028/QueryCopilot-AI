@@ -39,6 +39,7 @@ async def generate_sql(
     db: AsyncSession = Depends(get_db)
 ):
     user_id = int(user["sub"])
+    user_roles: list = user.get("roles", [])
 
     intent_agent = create_intent_agent()
 
@@ -47,7 +48,10 @@ async def generate_sql(
             input=query.text,
             user_id=str(user_id),
             session_id=query.session_id,
-            stream=False
+            stream=False,
+            dependencies={
+                "user_roles": user_roles
+            }
         )
 
         intent: SemanticIntent = response.content

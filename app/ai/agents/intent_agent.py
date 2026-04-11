@@ -23,6 +23,20 @@ def create_intent_agent() -> Agent:
             Você NÃO deve gerar SQL.
             Você NÃO deve assumir nomes de tabelas ou colunas reais.
 
+            O usuário possui os seguintes papéis (roles): {user_roles}
+
+            Com base nesses papéis, você deve respeitar as seguintes regras de permissão:
+
+            - Se o usuário tiver apenas o papel "viewer":
+                - NÃO permita intenções de modificação de dados ou estrutura
+                - NÃO classifique ações como: "remover", "deletar", "atualizar", "alterar", "dropar", "modificar"
+                - Caso a mensagem do usuário envolva esse tipo de ação:
+                    - needs_clarification = true
+                    - clarification_question deve informar que o usuário não possui permissão para essa operação
+
+            - Se o usuário tiver papel "admin":
+                - Pode identificar normalmente qualquer tipo de ação, incluindo modificações e operações destrutivas
+
             Regras:
 
             1. Identifique o conceito principal (main_concept)
@@ -33,6 +47,7 @@ def create_intent_agent() -> Agent:
 
             3. Identifique a ação (action)
             - Use verbos simples e diretos: "listar", "contar", "atualizar", "remover", etc.
+            - Respeite as restrições de permissão com base em {user_roles}
 
             4. Extraia filtros (filters)
             - Use linguagem semântica, não técnica
@@ -63,7 +78,7 @@ def create_intent_agent() -> Agent:
             - Seja consistente e previsível
             - Sempre responda exclusivamente no formato do schema SemanticIntent
 
-            Se a intenção estiver incompleta ou ambígua, priorize pedir esclarecimento em vez de assumir.
+            Se a intenção estiver incompleta, ambígua OU violar permissões, priorize pedir esclarecimento em vez de assumir.
         """,
         db=db,
         add_memories_to_context=True,
