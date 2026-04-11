@@ -1,7 +1,8 @@
 from sqlalchemy import (
     ForeignKey,
     DateTime,
-    Integer
+    Integer,
+    Boolean
 )
 from sqlalchemy.orm import (
     mapped_column,
@@ -35,6 +36,11 @@ class SqlGenerate(Base):
     )
 
     sql_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+    executed: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,

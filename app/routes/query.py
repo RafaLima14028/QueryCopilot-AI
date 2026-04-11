@@ -105,7 +105,8 @@ async def generate_sql(
         db.add(
             SqlGenerate(
                 user_id=user_id,
-                sql_json=response_sql.model_dump_json(exclude_none=True)
+                sql_json=response_sql.model_dump_json(exclude_none=True),
+                executed=False
             )
         )
         await db.commit()
