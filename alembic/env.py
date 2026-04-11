@@ -18,6 +18,7 @@ from app.models.roles import Role
 from app.models.user_roles import UserRoles
 from app.models.users_db import UserDB
 from app.models.query_requests import QueryRequest
+from app.models.sql_generate import SqlGenerate
 
 settings = get_settings()
 

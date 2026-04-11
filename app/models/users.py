@@ -48,3 +48,6 @@ class User(Base):
     query_requests: Mapped[list["QueryRequest"]] = relationship(
         back_populates="user"
     )
+    sql_generate: Mapped[list["SqlGenerate"]] = relationship(
+        back_populates="user"
+    )

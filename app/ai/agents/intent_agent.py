@@ -7,7 +7,7 @@ from app.ai.models.openrouter_deepseek import deepseek
 
 def create_intent_agent() -> Agent:
     return Agent(
-        id="Intent Agent",
+        id="IntentAgent",
         model=deepseek,
         name="Intent Agent",
         role="""
@@ -68,6 +68,5 @@ def create_intent_agent() -> Agent:
         db=db,
         add_memories_to_context=True,
         num_history_runs=5,
-        output_schema=SemanticIntent,
-        use_json_mode=True,
+        output_schema=SemanticIntent
     )

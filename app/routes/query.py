@@ -14,8 +14,11 @@ from app.schemas.query import (
     QueryPreviewResponse
 )
 from app.ai.agents.intent_agent import create_intent_agent
+from app.ai.agents.sql_generator_agent import create_sql_generator_agent
 from app.ai.schemas.intent_agent import SemanticIntent
+from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
 from app.models.query_requests import QueryRequest
+from app.models.sql_generate import SqlGenerate
 
 router = APIRouter(
     prefix="/query",
@@ -23,7 +26,7 @@ router = APIRouter(
 )
 
 
-@router.post("/preview", response_model=QueryPreviewResponse)
+@router.post("/preview", response_model=SqlGeneratorResponse)
 async def generate_sql(
     query: QueryPreviewRequest = Body(
         ...,
@@ -83,21 +86,38 @@ async def generate_sql(
             detail=f"Internal server error: {e}"
         )
 
-    return QueryPreviewResponse(
-        is_question=False
+    sql_agent = create_sql_generator_agent()
+
+    response = await sql_agent.arun(
+        input=intent,
+        user_id=str(user_id),
+        session_id=query.session_id,
+        stream=False
     )
+
+    response_sql: SqlGeneratorResponse = response.content
+
+    try:
+        db.add(
+            SqlGenerate(
+                user_id=user_id,
+                sql_json=response_sql.model_dump_json(exclude_none=True)
+            )
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {e}"
+        )
+
+    return response_sql
 
 
 @router.post("/execute")
 def execute_sql(
-    user: dict = Depends(required_role(["admin", "viewer"])),
-    db: AsyncSession = Depends(get_db)
-):
-    pass
-
-
-@router.post("/confirm")
-def generate_sql(
     user: dict = Depends(required_role(["admin", "viewer"])),
     db: AsyncSession = Depends(get_db)
 ):

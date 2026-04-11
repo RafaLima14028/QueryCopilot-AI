@@ -304,10 +304,6 @@ Gera o SQL proposto sem executar.
 
 Executa a consulta após validação.
 
-### `POST /query/confirm`
-
-Confirma uma execução pendente, quando necessário.
-
 ### `GET /history`
 
 Lista o histórico de consultas realizadas.
