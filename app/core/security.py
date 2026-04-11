@@ -14,10 +14,31 @@ from datetime import (
     timedelta,
     timezone
 )
+from cryptography.fernet import Fernet
 
 from app.core.settings import get_settings
 
 security = HTTPBearer()
+
+
+def encrypt_password_db(password: str) -> str:
+    key = get_settings().ENCRYPT_SECRET_KEY.encode()
+    f = Fernet(key)
+
+    return f.encrypt(
+        password.encode()
+    ).decode()
+
+
+def decrypt_password_db(
+    encrypted_password: str
+) -> str:
+    key = get_settings().ENCRYPT_SECRET_KEY.encode()
+    f = Fernet(key)
+
+    return f.decrypt(
+        encrypted_password.encode()
+    ).decode()
 
 
 def create_acess_token(data: dict) -> str:

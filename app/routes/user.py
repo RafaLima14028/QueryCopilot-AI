@@ -10,12 +10,19 @@ from sqlalchemy import select
 
 from app.schemas.user import (
     UserRegisterRequest,
-    UserRegisterResponse
+    UserRegisterResponse,
+    UserRegiserDbRequest,
+    UserRegiserDbResponse
 )
 from app.dependencies.database import get_db
 from app.models.users import User
 from app.models.roles import Role
-from app.core.security import hash_password
+from app.core.security import (
+    hash_password,
+    verify_token,
+    encrypt_password_db
+)
+from app.models.users_db import UserDB
 
 router = APIRouter(
     prefix="/users",
@@ -86,4 +93,58 @@ async def register(
         id=user.id,
         name=user.name,
         email=user.email
+    )
+
+
+@router.post(
+    "/register_db",
+    response_model=UserRegiserDbResponse
+)
+async def register_db(
+    new_db: UserRegiserDbRequest = Body(
+        ...,
+        examples={
+            "host": "192.168.1.150",
+            "port": 5432,
+            "db_name": "test_db",
+            "user": "user_test",
+            "password": "test@123",
+            "ssl_mode_enable": True
+        }
+    ),
+    user: dict = Depends(verify_token),
+    db: AsyncSession = Depends(get_db)
+):
+    if new_db.host.lower() in ["localhost", "127.0.0.1", "0.0.0.0"]:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="Not supported localhost address"
+        )
+
+    user_id = int(user.get("sub"))
+
+    user_db = UserDB(
+        db_host=new_db.host,
+        db_port=new_db.port,
+        db_name=new_db.db_name,
+        db_user=new_db.user,
+        db_password_cryp=encrypt_password_db(
+            new_db.password
+        ),
+        user_id=user_id
+    )
+
+    try:
+        db.add(user_db)
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {e}"
+        )
+
+    return UserRegiserDbResponse(
+        sucess=True
     )
