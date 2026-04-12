@@ -3,7 +3,6 @@ from sqlalchemy.sql import text
 from typing import List, Dict, Any
 from fastapi import HTTPException, status
 
-from app.models.users_db import UserDB
 from app.core.security import decrypt_password_db
 from app.schemas.query import UserDbData
 
@@ -16,20 +15,31 @@ class RemoteDatabaseService:
 
     def __init__(self, user_db: UserDbData):
         self.user_db = user_db
+        self.url_db: str = ""
 
     def _get_connection_url(self) -> str:
         """
         Constructs the connection URL based on the UserDB model data.
         Note: We are using the 'asyncpg' driver for PostgreSQL.
         """
-
-        # postgresql+asyncpg://user:password@host:port/dbname
-        return (
-            f"postgresql+asyncpg://{self.user_db.db_user}:{self.user_db.db_password}@"
-            f"{self.user_db.db_host}:{self.user_db.db_port}/{self.user_db.db_name}"
+        decrypt_password = decrypt_password_db(
+            self.user_db.db_password
         )
 
-    async def execute_query(self, query: str, params: list) -> List[Dict[str, Any]]:
+        # postgresql+asyncpg://user:password@host:port/dbname
+        self.url_db = (
+            f"postgresql+asyncpg://{self.user_db.db_user}:{decrypt_password}@"
+            f"{self.user_db.db_host}:{self.user_db.db_port}/{self.user_db.db_name}"
+            f"?ssl={"require" if self.user_db.db_ssl_mode else "disable"}"
+        )
+
+        return self.url_db
+
+    async def execute_query(
+        self,
+        query: str,
+        params: list = []
+    ) -> List[Dict[str, Any]]:
         """
         Executes an SQL query, returns the results, and closes the connection.
         Using 'engine.dispose()' ensures that the connection pool is cleared.

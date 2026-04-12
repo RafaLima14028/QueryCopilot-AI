@@ -1,7 +1,8 @@
 from sqlalchemy import (
     String,
     Integer,
-    ForeignKey
+    ForeignKey,
+    Boolean
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -41,11 +42,14 @@ class UserDB(Base):
         String,
         nullable=False
     )
+    db_ssl_mode: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False
+    )
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id")
     )
-
     user: Mapped["User"] = relationship(
         back_populates="user_db"
     )

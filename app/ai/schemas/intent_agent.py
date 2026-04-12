@@ -20,5 +20,4 @@ class SemanticIntent(BaseModel):
     limit: Optional[int] = None
 
     confidence: float = Field(..., ge=0, le=1)
-    needs_clarification: Optional[bool] = False
     clarification_question: Optional[str] = None

@@ -3,9 +3,11 @@ from agno.agent import Agent
 from app.ai.models.openrouter_deepseek import deepseek
 from app.ai.schemas.intent_agent import SemanticIntent
 from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
+from app.ai.tools.get_database_schema import get_database_schema
+from app.models.users_db import UserDB
 
 
-def create_sql_generator_agent() -> Agent:
+def create_sql_generator_agent(user_db: UserDB) -> Agent:
     return Agent(
         id="SqlGeneratorAgent",
         name="SQL Generator Agent",
@@ -30,6 +32,7 @@ def create_sql_generator_agent() -> Agent:
             Siga rigorosamente as regras abaixo:
 
             1. SCHEMA AWARE
+            - Acesse a tool `get_database_schema` para buscar pelo schema do banco de dados do cliente
             - Use apenas tabelas, colunas e relacionamentos existentes no schema fornecido no contexto
             - Nunca invente nomes
             - Respeite nomes exatos (case e formato)
@@ -76,5 +79,5 @@ def create_sql_generator_agent() -> Agent:
         """,
         input_schema=SemanticIntent,
         output_schema=SqlGeneratorResponse,
-        use_json_mode=True
+        tools=[get_database_schema(user_db)]
     )

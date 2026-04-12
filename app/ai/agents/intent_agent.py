@@ -83,5 +83,5 @@ def create_intent_agent() -> Agent:
         db=db,
         add_memories_to_context=True,
         num_history_runs=5,
-        output_schema=SemanticIntent
+        output_schema=SemanticIntent,
     )

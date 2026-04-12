@@ -131,6 +131,7 @@ async def register_db(
         db_password_cryp=encrypt_password_db(
             new_db.password
         ),
+        db_ssl_mode=new_db.ssl_mode_enable,
         user_id=user_id
     )
 

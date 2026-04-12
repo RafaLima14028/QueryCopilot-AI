@@ -18,3 +18,4 @@ class UserDbData(BaseModel):
     db_host: str
     db_port: int
     db_user: str
+    db_ssl_mode: bool

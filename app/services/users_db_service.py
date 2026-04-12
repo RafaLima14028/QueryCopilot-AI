@@ -31,5 +31,6 @@ class UserDbService:
             db_password=decrypt_password,
             db_host=row.db_host,
             db_port=row.db_port,
-            db_user=row.db_user
+            db_user=row.db_user,
+            db_ssl_mode=row.db_ssl_mode
         )

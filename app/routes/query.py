@@ -1,17 +1,14 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-    Body,
-    HTTPException,
-    status
-)
+from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import NoResultFound
+from sqlalchemy import select
 
+from app.core.security import decrypt_password_db
 from app.dependencies.security import required_role
 from app.dependencies.database import get_db
 from app.schemas.query import (
     QueryPreviewRequest,
-    QueryPreviewResponse
+    QueryPreviewResponse,
 )
 from app.ai.agents.intent_agent import create_intent_agent
 from app.ai.agents.sql_generator_agent import create_sql_generator_agent
@@ -19,27 +16,29 @@ from app.ai.schemas.intent_agent import SemanticIntent
 from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
 from app.models.query_requests import QueryRequest
 from app.models.sql_generate import SqlGenerate
+from app.models.users_db import UserDB
 from app.services.database_executor import RemoteDatabaseService
 from app.services.sql_generate_services import SqlGenerateServices
 from app.services.users_db_service import UserDbService
+from app.services.database_executor import RemoteDatabaseService
 
-router = APIRouter(
-    prefix="/query",
-    tags=["query"]
+router = APIRouter(prefix="/query", tags=["query"])
+
+
+@router.post(
+    "/preview",
+    response_model=SqlGeneratorResponse | QueryPreviewResponse
 )
-
-
-@router.post("/preview", response_model=SqlGeneratorResponse)
 async def generate_sql(
     query: QueryPreviewRequest = Body(
         ...,
         examples={
             "text": "It includes all users who made a purchase in the last month.",
-            "session_id": "8f7c2b3e-9a41-4d6a-8f0a-2b6d9e5c7a12"
-        }
+            "session_id": "8f7c2b3e-9a41-4d6a-8f0a-2b6d9e5c7a12",
+        },
     ),
     user: dict = Depends(required_role(["admin", "viewer"])),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     user_id = int(user["sub"])
     user_roles: list = user.get("roles", [])
@@ -52,25 +51,23 @@ async def generate_sql(
             user_id=str(user_id),
             session_id=query.session_id,
             stream=False,
-            dependencies={
-                "user_roles": user_roles
-            }
+            dependencies={"user_roles": user_roles},
         )
 
         intent: SemanticIntent = response.content
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e}"
+            detail=f"Internal server error: {e}",
         )
 
     if not intent:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Agent's empty response"
+            detail="Agent's empty response",
         )
 
-    if intent.needs_clarification is True or intent.confidence < 0.8:
+    if intent.confidence < 0.8 and intent.clarification_question:
         return QueryPreviewResponse(
             is_question=True,
             question=intent.clarification_question
@@ -79,7 +76,7 @@ async def generate_sql(
     query_req = QueryRequest(
         user_id=user_id,
         session_id=query.session_id,
-        intent_json=intent.model_dump_json(exclude_none=True)
+        intent_json=intent.model_dump_json(exclude_none=True),
     )
 
     try:
@@ -90,16 +87,32 @@ async def generate_sql(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e}"
+            detail=f"Internal server error: {e}",
         )
 
-    sql_agent = create_sql_generator_agent()
+    try:
+        result = await db.execute(
+            select(UserDB)
+            .where(UserDB.user_id == user_id)
+        )
+        user_db_data = result.scalars().one()
+    except NoResultFound:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No database registered",
+        )
+
+    sql_agent = create_sql_generator_agent(user_db_data)
 
     response = await sql_agent.arun(
         input=intent,
         user_id=str(user_id),
         session_id=query.session_id,
-        stream=False
+        stream=False,
+        # debug_mode=True,
+        # show_full_reasoning=True,
+        # show_reasoning=True,
+        # show_message=True
     )
 
     response_sql: SqlGeneratorResponse = response.content
@@ -109,7 +122,7 @@ async def generate_sql(
             SqlGenerate(
                 user_id=user_id,
                 sql_json=response_sql.model_dump_json(exclude_none=True),
-                executed=False
+                executed=False,
             )
         )
         await db.commit()
@@ -117,8 +130,7 @@ async def generate_sql(
         await db.rollback()
 
         raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e}"
+            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error: {e}"
         )
 
     return response_sql
@@ -127,7 +139,7 @@ async def generate_sql(
 @router.post("/execute")
 async def execute_sql(
     user: dict = Depends(required_role(["admin", "viewer"])),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     user_id = int(user.get("sub"))
 
@@ -136,8 +148,7 @@ async def execute_sql(
 
     if not last_sql_not_executed:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail=f"There are no pending SQL queries"
+            status.HTTP_404_NOT_FOUND, detail=f"There are no pending SQL queries"
         )
 
     user_db_service = UserDbService(db)
@@ -145,14 +156,13 @@ async def execute_sql(
 
     if not user_db_data:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail=f"Database not registered"
+            status.HTTP_404_NOT_FOUND, detail=f"Database not registered"
         )
 
     remote_db = RemoteDatabaseService(user_db_data)
     rows_db_user = await remote_db.execute_query(
         query=last_sql_not_executed.sql_json["sql"],
-        params=last_sql_not_executed.sql_json["params"]
+        params=last_sql_not_executed.sql_json["params"],
     )
 
     return rows_db_user
