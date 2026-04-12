@@ -19,6 +19,9 @@ from app.ai.schemas.intent_agent import SemanticIntent
 from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
 from app.models.query_requests import QueryRequest
 from app.models.sql_generate import SqlGenerate
+from app.services.database_executor import RemoteDatabaseService
+from app.services.sql_generate_services import SqlGenerateServices
+from app.services.users_db_service import UserDbService
 
 router = APIRouter(
     prefix="/query",
@@ -122,8 +125,34 @@ async def generate_sql(
 
 
 @router.post("/execute")
-def execute_sql(
+async def execute_sql(
     user: dict = Depends(required_role(["admin", "viewer"])),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    user_id = int(user.get("sub"))
+
+    sql_service = SqlGenerateServices(db)
+    last_sql_not_executed = await sql_service.get_last(user_id)
+
+    if not last_sql_not_executed:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"There are no pending SQL queries"
+        )
+
+    user_db_service = UserDbService(db)
+    user_db_data = await user_db_service.get_user_db(user_id)
+
+    if not user_db_data:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Database not registered"
+        )
+
+    remote_db = RemoteDatabaseService(user_db_data)
+    rows_db_user = await remote_db.execute_query(
+        query=last_sql_not_executed.sql_json["sql"],
+        params=last_sql_not_executed.sql_json["params"]
+    )
+
+    return rows_db_user
