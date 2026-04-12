@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy import select
+import json
 
-from app.core.security import decrypt_password_db
 from app.dependencies.security import required_role
 from app.dependencies.database import get_db
 from app.schemas.query import (
@@ -145,24 +145,36 @@ async def execute_sql(
 
     sql_service = SqlGenerateServices(db)
     last_sql_not_executed = await sql_service.get_last(user_id)
+    data = last_sql_not_executed.sql_json
 
     if not last_sql_not_executed:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND, detail=f"There are no pending SQL queries"
+            status.HTTP_404_NOT_FOUND,
+            detail=f"There are no pending SQL queries"
         )
+    elif last_sql_not_executed.executed == True:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"There are no pending SQL queries"
+        )
+    elif isinstance(data, str):
+        data = json.loads(data)
 
     user_db_service = UserDbService(db)
     user_db_data = await user_db_service.get_user_db(user_id)
 
     if not user_db_data:
         raise HTTPException(
-            status.HTTP_404_NOT_FOUND, detail=f"Database not registered"
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Database not registered"
         )
 
     remote_db = RemoteDatabaseService(user_db_data)
     rows_db_user = await remote_db.execute_query(
-        query=last_sql_not_executed.sql_json["sql"],
-        params=last_sql_not_executed.sql_json["params"],
+        query=data["sql"],
+        params=data["params"],
     )
+
+    await sql_service.update_last(user_id)
 
     return rows_db_user

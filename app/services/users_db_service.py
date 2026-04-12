@@ -21,14 +21,12 @@ class UserDbService:
 
         decrypt_password = None
 
-        if row:
-            decrypt_password = decrypt_password_db(row.db_password_cryp)
-        else:
+        if not row:
             return None
 
         return UserDbData(
             db_name=row.db_name,
-            db_password=decrypt_password,
+            db_password=row.db_password_cryp,
             db_host=row.db_host,
             db_port=row.db_port,
             db_user=row.db_user,

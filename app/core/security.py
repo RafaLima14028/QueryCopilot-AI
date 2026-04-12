@@ -22,7 +22,7 @@ security = HTTPBearer()
 
 
 def encrypt_password_db(password: str) -> str:
-    key = get_settings().ENCRYPT_SECRET_KEY.encode()
+    key = get_settings().ENCRYPT_SECRET_KEY.strip().encode()
     f = Fernet(key)
 
     return f.encrypt(
@@ -33,7 +33,7 @@ def encrypt_password_db(password: str) -> str:
 def decrypt_password_db(
     encrypted_password: str
 ) -> str:
-    key = get_settings().ENCRYPT_SECRET_KEY.encode()
+    key = get_settings().ENCRYPT_SECRET_KEY.strip().encode()
     f = Fernet(key)
 
     return f.decrypt(
