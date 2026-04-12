@@ -6,8 +6,10 @@ anyio==4.13.0
 asyncpg==0.31.0
 bcrypt==5.0.0
 certifi==2026.2.25
+cffi==2.0.0
 click==8.3.2
 colorama==0.4.6
+cryptography==46.0.7
 distro==1.9.0
 dnspython==2.8.0
 docstring_parser==0.17.0
@@ -35,6 +37,7 @@ MarkupSafe==3.0.3
 mdurl==0.1.2
 openai==2.31.0
 packaging==26.0
+pycparser==3.0
 pydantic==2.12.5
 pydantic-extra-types==2.11.2
 pydantic-settings==2.13.1
