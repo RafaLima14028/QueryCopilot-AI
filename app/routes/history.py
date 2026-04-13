@@ -8,6 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
+from app.services.sql_generate_services import SqlGenerateServices
+
 from app.dependencies.security import required_role
 from app.dependencies.database import get_db
 from app.models.sql_generate import SqlGenerate
@@ -31,16 +33,11 @@ async def history(
 ):
     user_id = int(user.get("sub"))
 
-    result = await db.execute(
-        select(SqlGenerate)
-        .where(
-            SqlGenerate.user_id == user_id,
-            SqlGenerate.executed.is_(True)
-        )
-        .offset(skip)
-        .limit(limit)
+    rows = await SqlGenerateServices(db).get_n_executions(
+        user_id=user_id,
+        skip=skip,
+        limit=limit
     )
-    rows = result.scalars().all()
 
     for row in rows:
         if isinstance(row.sql_json, str):
@@ -60,15 +57,10 @@ async def history_by_id(
 ):
     user_id = int(user.get("sub"))
 
-    result = await db.execute(
-        select(SqlGenerate)
-        .where(
-            SqlGenerate.user_id == user_id,
-            SqlGenerate.executed.is_(True),
-            SqlGenerate.id == id
-        )
+    row = await SqlGenerateServices(db).get_by_id(
+        user_id=user_id,
+        id=id
     )
-    row = result.scalar_one_or_none()
 
     if isinstance(row.sql_json, str):
         row.sql_json = json.loads(row.sql_json)

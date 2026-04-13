@@ -41,3 +41,36 @@ class SqlGenerateServices:
             return {}
 
         return row
+
+    async def get_n_executions(
+        self,
+        user_id: int,
+        skip: int,
+        limit: int
+    ) -> list[SqlGenerate]:
+        result = await self.db.execute(
+            select(SqlGenerate)
+            .where(
+                SqlGenerate.user_id == user_id,
+                SqlGenerate.executed.is_(True)
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+
+        return result.scalars().all()
+
+    async def get_by_id(
+        self,
+        user_id: int,
+        id: int
+    ) -> SqlGenerate | None:
+        result = await self.db.execute(
+            select(SqlGenerate)
+            .where(
+                SqlGenerate.user_id == user_id,
+                SqlGenerate.executed.is_(True),
+                SqlGenerate.id == id
+            )
+        )
+        return result.scalar_one_or_none()
