@@ -1,24 +1,16 @@
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
-    status,
     Body
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from app.core.security import (
-    verify_password,
-    create_acess_token
-)
+from app.services.auth_service import AuthService
 from app.dependencies.database import get_db
 from app.schemas.auth import (
     LoginRequest,
     LoginResponse
 )
-from app.models.users import User
 
 router = APIRouter(
     prefix="/auth",
@@ -40,24 +32,7 @@ async def login(
     ),
     db: AsyncSession = Depends(get_db)
 ):
-    query = (
-        select(User)
-        .where(User.email == user.email)
-        .options(selectinload(User.roles))
-    )
-
-    result = await db.execute(query)
-    user_db = result.scalars().first()
-
-    if not user_db or not verify_password(user.password, user_db.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
-
-    token = create_acess_token({
-        "sub": str(user_db.id),
-        "roles": [role.name for role in user_db.roles]
-    })
+    auth_service = AuthService(db)
+    token = await auth_service.login(user)
 
     return LoginResponse(token=token)
