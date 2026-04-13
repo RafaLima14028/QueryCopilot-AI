@@ -312,10 +312,6 @@ Lista o histórico de consultas realizadas.
 
 Retorna os detalhes de uma consulta específica.
 
-### `POST /feedback`
-
-Salva avaliação do resultado retornado.
-
 ### `GET /schema`
 
 Exibe metadados do banco e mapeamentos disponíveis.
