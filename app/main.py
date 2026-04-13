@@ -7,6 +7,7 @@ from app.routes.auth import router as router_auth
 from app.routes.user import router as router_user
 from app.routes.query import router as router_query
 from app.routes.history import router as router_history
+from app.routes.schema import router as router_schema
 
 
 app = FastAPI()
@@ -21,6 +22,7 @@ app.include_router(router_auth)
 app.include_router(router_user)
 app.include_router(router_query)
 app.include_router(router_history)
+app.include_router(router_schema)
 
 setup_cors(app)
 

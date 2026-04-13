@@ -21,29 +21,18 @@ def get_database_schema(user_db: UserDB):
             )
         )
 
-        query = """
-        SELECT 
-            table_schema, 
-            table_name, 
-            column_name, 
-            data_type, 
-            is_nullable
-        FROM 
-            information_schema.columns
-        WHERE 
-            table_schema NOT IN ('information_schema', 'pg_catalog')
-        ORDER BY 
-            table_name, ordinal_position;
-        """
-
-        result = await remote_db.execute_query(query=query)
-
-        if not result:
-            return "O schema está vazio ou não foi possível acesá-lo"
+        schema_dict = await remote_db.get_db_schema()
 
         schema_text = "Estrutura do Banco de Dados:\n"
-        for row in result:
-            schema_text += f"Tabela: {row['table_name']} | Coluna: {row['column_name']} | Tipo: {row['data_type']} | Nulável: {row['is_nullable']}\n"
+
+        for table, columns in schema_dict["tables"].items():
+            for col in columns:
+                schema_text += (
+                    f"Tabela: {table} | "
+                    f"Coluna: {col["column_type"]} | "
+                    f"Tipo: {col["data_type"]}"
+                    f"Nulável: {"SIM" if col["is_nullable"] else "NÃO"}\n"
+                )
 
         return schema_text
 

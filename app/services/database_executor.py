@@ -82,3 +82,44 @@ class RemoteDatabaseService:
             )
         finally:
             await engine.dispose()
+
+    async def get_db_schema(self) -> dict[str, dict] | None:
+        query = """
+        SELECT
+            table_schema,
+            table_name,
+            column_name,
+            data_type,
+            is_nullable
+        FROM
+            information_schema.columns
+        WHERE
+            table_schema NOT IN ('information_schema', 'pg_catalog')
+        ORDER BY
+            table_name, ordinal_position;
+        """
+
+        result = await self.execute_query(
+            query=query
+        )
+
+        if not result:
+            return None
+
+        schema_dict = {
+            "tables": {}
+        }
+
+        for row in result:
+            table_name = row["table_name"]
+
+            if table_name not in schema_dict["tables"]:
+                schema_dict["tables"][table_name] = []
+
+            schema_dict["tables"][table_name].append({
+                "column_name": row["column_name"],
+                "data_type": row["data_type"],
+                "is_nullable": row["is_nullable"] == "YES"
+            })
+
+        return schema_dict
