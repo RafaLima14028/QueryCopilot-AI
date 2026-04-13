@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import NoResultFound
+
 from sqlalchemy import select
 import json
 
@@ -10,24 +10,26 @@ from app.schemas.query import (
     QueryPreviewRequest,
     QueryPreviewResponse,
 )
-from app.ai.agents.intent_agent import create_intent_agent
-from app.ai.agents.sql_generator_agent import create_sql_generator_agent
-from app.ai.schemas.intent_agent import SemanticIntent
+
+
 from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
-from app.models.query_requests import QueryRequest
+
 from app.models.sql_generate import SqlGenerate
 from app.models.users_db import UserDB
 from app.services.database_executor import RemoteDatabaseService
 from app.services.sql_generate_services import SqlGenerateServices
-from app.services.users_db_service import UserDbService
 from app.services.database_executor import RemoteDatabaseService
+
+from app.services.ai_agents_service import AiAgentsService
+from app.services.query_requests_service import QueryRequetsService
+from app.services.users_db_service import UserDbService
 
 router = APIRouter(prefix="/query", tags=["query"])
 
 
 @router.post(
     "/preview",
-    response_model=SqlGeneratorResponse | QueryPreviewResponse
+    response_model=QueryPreviewResponse | SqlGeneratorResponse
 )
 async def generate_sql(
     query: QueryPreviewRequest = Body(
@@ -43,95 +45,35 @@ async def generate_sql(
     user_id = int(user["sub"])
     user_roles: list = user.get("roles", [])
 
-    intent_agent = create_intent_agent()
-
-    try:
-        response = await intent_agent.arun(
-            input=query.text,
-            user_id=str(user_id),
-            session_id=query.session_id,
-            stream=False,
-            dependencies={"user_roles": user_roles},
-        )
-
-        intent: SemanticIntent = response.content
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e}",
-        )
-
-    if not intent:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Agent's empty response",
-        )
-
-    if intent.confidence < 0.8 and intent.clarification_question:
-        return QueryPreviewResponse(
-            is_question=True,
-            question=intent.clarification_question
-        )
-
-    query_req = QueryRequest(
-        user_id=user_id,
-        session_id=query.session_id,
-        intent_json=intent.model_dump_json(exclude_none=True),
+    agents = AiAgentsService(
+        user_id, user_roles, query.session_id
+    )
+    intent = await agents.intent_agent(
+        query.text
     )
 
-    try:
-        db.add(query_req)
-        await db.commit()
-    except Exception as e:
-        await db.rollback()
+    if isinstance(intent, QueryPreviewResponse) and intent.is_question:
+        return intent
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e}",
-        )
-
-    try:
-        result = await db.execute(
-            select(UserDB)
-            .where(UserDB.user_id == user_id)
-        )
-        user_db_data = result.scalars().one()
-    except NoResultFound:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No database registered",
-        )
-
-    sql_agent = create_sql_generator_agent(user_db_data)
-
-    response = await sql_agent.arun(
-        input=intent,
-        user_id=str(user_id),
-        session_id=query.session_id,
-        stream=False,
-        # debug_mode=True,
-        # show_full_reasoning=True,
-        # show_reasoning=True,
-        # show_message=True
+    query_req_service = QueryRequetsService(db)
+    await query_req_service.insert(
+        user_id,
+        query.session_id,
+        intent
     )
 
-    response_sql: SqlGeneratorResponse = response.content
+    user_db_service = UserDbService(db)
+    user_db_data = await user_db_service.get_user_db_or_error(
+        user_id
+    )
 
-    try:
-        db.add(
-            SqlGenerate(
-                user_id=user_id,
-                sql_json=response_sql.model_dump_json(exclude_none=True),
-                executed=False,
-            )
-        )
-        await db.commit()
-    except Exception as e:
-        await db.rollback()
+    response_sql = await agents.sql_generator_agent(
+        user_db_data,
+        intent
+    )
 
-        raise HTTPException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error: {e}"
-        )
+    sql_service = SqlGenerateServices(db)
+    await sql_service.insert(user_id, response_sql)
 
     return response_sql
 

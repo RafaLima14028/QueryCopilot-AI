@@ -1,7 +1,9 @@
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, update
 
 from app.models.sql_generate import SqlGenerate
+from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
 
 
 class SqlGenerateServices:
@@ -74,3 +76,26 @@ class SqlGenerateServices:
             )
         )
         return result.scalar_one_or_none()
+
+    async def insert(
+        self,
+        user_id: int,
+        response_sql: SqlGeneratorResponse
+    ) -> bool:
+        try:
+            self.db.add(
+                SqlGenerate(
+                    user_id=user_id,
+                    sql_json=response_sql.model_dump_json(exclude_none=True),
+                    executed=False,
+                )
+            )
+            await self.db.commit()
+        except Exception as e:
+            await self.db.rollback()
+
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error: {e}"
+            )
+
+        return True

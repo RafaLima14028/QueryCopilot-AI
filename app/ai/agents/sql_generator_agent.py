@@ -4,10 +4,10 @@ from app.ai.models.openrouter_deepseek import deepseek
 from app.ai.schemas.intent_agent import SemanticIntent
 from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
 from app.ai.tools.get_database_schema import get_database_schema
-from app.models.users_db import UserDB
+from app.schemas.query import UserDbData
 
 
-def create_sql_generator_agent(user_db: UserDB) -> Agent:
+def create_sql_generator_agent(user_db: UserDbData) -> Agent:
     return Agent(
         id="SqlGeneratorAgent",
         name="SQL Generator Agent",

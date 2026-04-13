@@ -1,5 +1,7 @@
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import NoResultFound
 
 from app.models.users_db import UserDB
 from app.core.security import (
@@ -19,8 +21,6 @@ class UserDbService:
         )
         row = result.scalars().one_or_none()
 
-        decrypt_password = None
-
         if not row:
             return None
 
@@ -32,3 +32,27 @@ class UserDbService:
             db_user=row.db_user,
             db_ssl_mode=row.db_ssl_mode
         )
+
+    async def get_user_db_or_error(
+        self, user_id: int
+    ) -> UserDbData:
+        try:
+            result = await self.db.execute(
+                select(UserDB)
+                .where(UserDB.user_id == user_id)
+            )
+            data = result.scalars().one()
+
+            return UserDbData(
+                db_name=data.db_name,
+                db_password=data.db_password_cryp,
+                db_host=data.db_host,
+                db_port=data.db_port,
+                db_user=data.db_user,
+                db_ssl_mode=data.db_ssl_mode
+            )
+        except NoResultFound:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No database registered",
+            )
