@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select
 import json
 
 from app.dependencies.security import required_role
@@ -10,12 +9,7 @@ from app.schemas.query import (
     QueryPreviewRequest,
     QueryPreviewResponse,
 )
-
-
 from app.ai.schemas.sql_generator_agent import SqlGeneratorResponse
-
-from app.models.sql_generate import SqlGenerate
-from app.models.users_db import UserDB
 from app.services.database_executor import RemoteDatabaseService
 from app.services.sql_generate_services import SqlGenerateServices
 from app.services.database_executor import RemoteDatabaseService

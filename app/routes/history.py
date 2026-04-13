@@ -4,15 +4,12 @@ from fastapi import (
     Query,
     Path
 )
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
 from app.services.sql_generate_services import SqlGenerateServices
-
 from app.dependencies.security import required_role
 from app.dependencies.database import get_db
-from app.models.sql_generate import SqlGenerate
 from app.schemas.history import HistoryResponse
 
 router = APIRouter(
