@@ -15,12 +15,11 @@ Em muitas empresas, o acesso aos dados ainda depende de analistas ou desenvolved
 1. O usuário faz uma pergunta em linguagem natural.
 2. O agente interpreta o objetivo de negócio.
 3. O agente consulta o contexto do banco e identifica tabelas, relações e colunas relevantes.
-4. O agente monta um plano de execução.
-5. O agente gera o SQL.
+4. O agente gera o SQL.
+5. O sistema valida a consulta.
 6. O usuário valida o SQL.
-7. O sistema valida a consulta.
-8. O sistema executa com segurança.
-9. O resultado é retornado em formato tabular.
+7. O sistema executa com segurança.
+8. O resultado é retornado em formato tabular.
 
 O projeto foi desenhado para ser demonstrável em entrevistas, mas com profundidade suficiente para parecer uma solução que poderia ser adotada por uma empresa de verdade.
 
@@ -194,48 +193,6 @@ Esse fluxo pode mostrar:
 
 Isso demonstra controle e transparência.
 
-### 13. Logs estruturados e rastreabilidade
-
-Cada passo do agente pode gerar logs estruturados.
-
-Isso ajuda a observar:
-
-- intenções recebidas;
-- decisões do agente;
-- query final;
-- erros de validação;
-- tempo de execução;
-- resposta do banco.
-
-Excelente para debugar e para mostrar maturidade técnica.
-
-### 14. Métricas de uso
-
-O projeto pode exibir indicadores como:
-
-- número de consultas por usuário;
-- perguntas mais frequentes;
-- taxa de sucesso da geração de SQL;
-- tempo médio de resposta;
-- consultas bloqueadas por segurança;
-- tipos de pergunta mais comuns.
-
-Essas métricas transformam o projeto em algo observável.
-
-### 15. Feedback do usuário
-
-Após cada resposta, o usuário pode avaliar o resultado.
-
-Exemplos de feedback:
-
-- “correto”;
-- “incompleto”;
-- “SQL ruim”;
-- “resposta útil”;
-- “resultado confuso”.
-
-Isso permite ciclos de melhoria do agente.
-
 ---
 
 ## Stack principal
@@ -315,40 +272,6 @@ Retorna os detalhes de uma consulta específica.
 ### `GET /schema`
 
 Exibe metadados do banco e mapeamentos disponíveis.
-
-### `GET /metrics`
-
-Retorna métricas de uso e performance.
-
----
-
-## Modelo de dados sugerido
-
-### Tabelas principais
-
-- `users`
-- `roles`
-- `query_requests`
-- `query_executions`
-- `query_feedbacks`
-- `audit_logs`
-- `database_schemas`
-- `database_tables`
-- `database_columns`
-- `execution_errors`
-
-### O que pode ser salvo
-
-- texto original da pergunta;
-- SQL gerado;
-- SQL final executado;
-- resultado resumido;
-- tempo de execução;
-- usuário responsável;
-- risco calculado;
-- feedback recebido;
-- data e hora;
-- detalhes de erro, se houver.
 
 ---
 
